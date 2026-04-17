@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { onMounted, computed } from 'vue'
 import HomeHero from '@/components/ui/HomeHero.vue'
 import SidebarMain from '@/components/ui/SidebarMain.vue'
 import HomeCategorySection from '@/components/ui/HomeCategorySection.vue';
@@ -47,48 +47,20 @@ const heroData = computed(() => {
 })
 
 const featuredPosts = computed(() => {
-  // Accedemos a los datos inyectados en el Controller (DESTACADAS)
+  // 1. Traemos todo lo que venga en 'destacadas' (ya vienen 9 desde PHP)
   const posts = store.pageData?.data?.destacadas || [];
 
-  // Mapeamos para que coincida con la estructura de tu componente
   return posts.map((post: any, index: number) => ({
-    id: post.ID,
-    category: `0${index + 1} / ${(post.category_name || 'DESTACADO').toUpperCase()}`,
+    id: post.id || post.ID, // Soporta ambas por si acaso
+    // Generamos el label 01, 02... 09
+    indexLabel: (index + 1).toString().padStart(2, '0'),
+    category: (post.category_name || 'DESTACADO').toUpperCase(),
     title: post.title_home,
     description: post.post_excerpt,
-    url: post.link // Timber provee el link directo
-  })).slice(0, 3); // Solo tomamos las primeras 3 para la Triple Section
-
-})
-
-const gridTriplePosts = ref([
-  { id: 1, title: 'Jazz en el centro.', excerpt: 'La movida nocturna...', image: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80' },
-  { id: 2, title: 'Noches de Barranco.', excerpt: 'Un recorrido por...', image: 'https://images.unsplash.com/photo-1514328537553-6058093e9866?q=80' },
-  { id: 3, title: 'Campus Híbridos.', excerpt: 'Las universidades...', image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80' }
-])
-
-const gridDoublePosts = ref([
-  { id: 1, title: 'El renacer del Centro.', excerpt: 'Desde casonas...', image: 'https://images.unsplash.com/photo-1493612276216-ee3925520721?q=80' },
-  { id: 2, title: 'Relojería andina.', excerpt: 'Una nueva generación...', image: 'https://images.unsplash.com/photo-1509048191080-d2984bad6ad5?q=80' }
-])
-
-const economyPosts = [
-  { id: 1, meta: 'Banca', title: 'BCR mantiene tasas bajas.', description: 'El Banco Central de Reserva ha decidido mantener su política de tasas mínimas para estimular el consumo interno y facilitar el acceso a créditos hipotecarios en el sector inmobiliario nacional este trimestre.', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80' },
-  { id: 2, meta: 'Agro', title: 'Récord de Arándanos en el norte.', description: 'Gracias a la optimización de los sistemas de riego y nuevos acuerdos comerciales, las exportaciones de arándanos hacia los mercados asiáticos han registrado un crecimiento histórico del 40% durante el primer semestre.' },
-  { id: 3, meta: 'Inversión', title: 'Fintech levanta $20M en ronda A.', description: 'Una destacada plataforma de banca abierta local ha cerrado una importante ronda de capitalización liderada por inversores europeos, consolidando el atractivo del ecosistema tecnológico financiero peruano ante el mundo.' },
-  { id: 4, meta: 'Puerto', title: 'Chanchay: Fase 2 inicia obras.', description: 'Una destacada plataforma de banca abierta local ha cerrado una importante ronda de capitalización liderada por inversores europeos, consolidando el atractivo del ecosistema tecnológico financiero peruano ante el mundo.' },
- 
-  // ... más posts
-];
-
-const techPosts = [
-  { id: 1, meta: 'IA', title: 'BCR mantiene tasas bajas.', description: 'El Banco Central de Reserva ha decidido mantener su política de tasas mínimas para estimular el consumo interno y facilitar el acceso a créditos hipotecarios en el sector inmobiliario nacional este trimestre.', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80' },
-  { id: 2, meta: 'Hardware', title: 'Récord de Arándanos en el norte.', description: 'Gracias a la optimización de los sistemas...' },
-  { id: 3, meta: 'Ciber', title: 'Fintech levanta $20M en ronda A.', description: 'Una destacada plataforma de banca abierta local ha cerrado una importante ronda de capitalización liderada por inversores europeos, consolidando el atractivo del ecosistema tecnológico financiero peruano ante el mundo.' },
-  { id: 4, meta: 'Espacio', title: 'Fintech levanta $20M en ronda A.', description: 'Una destacada plataforma de banca abierta local ha cerrado una importante ronda de capitalización liderada por inversores europeos, consolidando el atractivo del ecosistema tecnológico financiero peruano ante el mundo.' },
- 
-  // ... más posts
-];
+    image: post.image, // <--- Importante para las grillas con foto
+    url: post.url || post.link
+  }));
+});
 
 </script>
 
@@ -103,7 +75,7 @@ const techPosts = [
           />
 
           <section class="c-triple-section">
-            <div v-for="post in featuredPosts" :key="post.id" class="c-article-preview is-triple">
+            <div v-for="post in featuredPosts.slice(0, 3)" :key="post.id" class="c-article-preview is-triple">
               <span class="c-article-preview-tag">{{ post.category }}</span>
               <h3 class="c-article-preview-title">{{ post.title }}</h3>
               <p class="c-article-preview-excerpt">{{ post.description }}</p>
@@ -111,31 +83,31 @@ const techPosts = [
           </section>
 
           <section class="c-grid-row-3">
-            <article v-for="post in gridTriplePosts" :key="post.id" class="c-article-preview is-grid">
+            <article v-for="post in featuredPosts.slice(3, 6)" :key="post.id" class="c-article-preview is-grid">
               <div class="c-article-preview-image-wrapper">
                 <img :src="post.image" :alt="post.title">
               </div>
               <h4 class="c-article-preview-title">{{ post.title }}</h4>
-              <p class="c-article-preview-excerpt">{{ post.excerpt }}</p>
+              <p class="c-article-preview-excerpt">{{ post.description }}</p>
             </article>
           </section>
 
-          <section class="c-row-text-only">
-            <span class="c-article-preview-tag">Especial // Sostenibilidad</span>
-            <h2 class="c-article-preview-title">Riego Ancestral...</h2>
-            <p class="c-article-preview-excerpt">Frente a las sequías...</p>
+          <section v-if="featuredPosts[6]" class="c-row-text-only">
+            <span class="c-article-preview-tag">{{ featuredPosts[6].category }}</span>
+            <h2 class="c-row-text-only-title">{{ featuredPosts[6].title }}</h2>
+            <p class="c-article-preview-excerpt">{{ featuredPosts[6].description }}</p>
           </section>
 
           <section class="c-grid-row-2">
-            <article v-for="post in gridDoublePosts" :key="post.id" class="c-article-preview is-grid">
+            <article v-for="post in featuredPosts.slice(7, 9)" :key="post.id" class="c-article-preview is-grid">
               <div class="c-article-preview-image-wrapper">
                 <img :src="post.image" :alt="post.title">
               </div>
               <h4 class="c-article-preview-title">{{ post.title }}</h4>
-              <p class="c-article-preview-excerpt">{{ post.excerpt }}</p>
+              <p class="c-article-preview-excerpt">{{ post.description }}</p>
             </article>
           </section>
-        </div>
+              </div>
 
         <aside class="c-sidebar"> 
           <SidebarMain />
@@ -144,8 +116,12 @@ const techPosts = [
       </div> 
 
       <div class="c-category-wrapper">
-        <HomeCategorySection title="Economía" :posts="economyPosts" />
-        <HomeCategorySection title="Tecnología" :posts="techPosts" />
+        <HomeCategorySection 
+          v-for="section in store.pageData?.data?.category_sections" 
+          :key="section.category_name"
+          :title="section.category_name" 
+          :posts="section.articles" 
+        />
       </div>
 
   </BaseView>

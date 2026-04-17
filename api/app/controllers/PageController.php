@@ -79,6 +79,7 @@ class PageController {
             case 'page':
                 switch ($postSlug) {
                 case 'home': // <--- Este es el caso para tu Portada
+                    // HOME - HERO
                     $heroPost = Timber::get_post([
                         'post_type' => 'post',
                         'meta_query' => [['key' => 'es_hero', 'value' => '1']],
@@ -94,11 +95,13 @@ class PageController {
                             'category_name' => (count($heroPost->terms())) ? $heroPost->terms()[0]->name : 'Actualidad'
                         ];
                     }
-                    // Obtenemos las destacadas
+                    // HOME - DESTACADAS
                     $destacadasPosts = Timber::get_posts([
                         'post_type' => 'post',
-                        'meta_query' => [['key' => 'es_destacada', 'value' => '1']],
-                        'posts_per_page' => 3
+                        'post_per_page' => 9,
+                        'meta_query'     => [['key' => 'es_destacada', 'value' => '1']],
+                        'orderby'        => 'menu_order',    // CAMBIADO: Usar el campo Orden
+                        'order'          => 'ASC'            // CAMBIADO: De menor a mayor
                     ]);
                     // Preparamos cada destacada para que no le falte imagen ni categoría
                     $destacadasData = [];
@@ -110,13 +113,73 @@ class PageController {
                             'title_home'         => $p->titulo_portada(),
                             'post_excerpt'  => $p->post_excerpt,
                             'category_name' => ($p_terms && !empty($p_terms)) ? $p_terms[0]->name : 'Destacado',
+                            'image'    => $p->thumbnail() ? $p->thumbnail()->src() : null,
                             'url'           => $p->link() // Si prefieres enviar la URL procesada desde PHP
                         ];
                     }
+                    
+                    //HOME - CATEGORIAS
+                    // 1. Recolectar IDs ya usados
+                    $exclude_ids = [$heroPost->ID];
+                    foreach ($destacadasPosts as $p) {
+                        $exclude_ids[] = $p->ID;
+                    }
+
+                    // 2. Definir las categorías que quieres mostrar
+                    $categories_to_show = ['tecnologia', 'entretenimiento', 'deportes', 'automotriz', 'sostenibilidad', 'empresa', 'actualidad', 'mineria-y-construccion'];
+                    $sectionsData = [];
+
+                    foreach ($categories_to_show as $slug) {
+                        $cat_posts = Timber::get_posts([
+                            'post_type'      => 'post',
+                            'category_name'  => $slug,
+                            'posts_per_page' => 4,
+                            'post__not_in'   => $exclude_ids, // <--- AQUÍ EVITAMOS REPETIR
+                        ]);
+                    $sectionsData[] = [
+                            'category_name' => str_replace('-', ' ', strtoupper($slug)),
+                            'articles'      => array_map(function($p) use ($slug) {
+
+                                // Buscamos todos los términos de categoría
+                                $terms = $p->terms('category');
+                                $subCatName = '';
+
+                                foreach ($terms as $term) {
+                                    // Si el término NO es el que define la sección (el padre), es nuestra subcategoría
+                                    if ($term->slug !== $slug) {
+                                        $subCatName = $term->name;
+                                        break; 
+                                    }
+                                }
+
+                                // Si no tiene subcategoría, usamos la principal por defecto
+                                if (empty($subCatName)) {
+                                    $subCatName = count($terms) ? $terms[0]->name : '';
+                                }
+                                return [
+                                    'id'         => $p->ID,
+                                    'title'      => $p->titulo_portada(),
+                                    'excerpt'    => $p->post_excerpt,
+                                    'image'      => $p->thumbnail() ? $p->thumbnail()->src() : null,
+                                    'category'   => str_replace('-', ' ', strtoupper($slug)),
+                                    'subcategory' => (function($p, $slug) {
+                                        $terms = $p->terms('category');
+                                        foreach ($terms as $term) {
+                                            if ($term->slug !== $slug) return $term->name;
+                                        }
+                                        return count($terms) ? $terms[0]->name : '';
+                                    })($p, $slug),
+                                    'url'        => $p->link()
+                                ];
+                            }, $cat_posts->to_array())
+                        ];
+                    }
+
 
                     $data = [
                         'hero' => $heroData,
-                        'destacadas' => $destacadasData
+                        'destacadas' => $destacadasData,
+                        'category_sections' => $sectionsData
                     ];
                     break;
 
