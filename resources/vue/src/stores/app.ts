@@ -74,39 +74,73 @@ export const useAppStore = defineStore('app', {
     },
     // ACCIÓN PARA DATOS GLOBALES (Menús)
     async getGeneralData(): Promise<void> {
-      const response = await fetch(`${this.api}/pages/general/?type=general`)
+      const urlFinal = `${this.api}/pages/general/?type=general`;
+      console.log("📡 Intentando conectar a:", urlFinal);
 
-      if (response.status === 201 || response.status < 300) {
-        const { data } = await response.json()
+      try {
+        const response = await fetch(urlFinal);
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
 
-        this.general.data.information = data.information
-        this.general.data.primaryMenu = data.primary_menu
-        this.general.loading = false
+        const json = await response.json();
+        console.log("📦 Estructura completa recibida:", json);
+
+        // --- LA SOLUCIÓN: Atraviesa hasta 3 niveles de 'data' ---
+        const rawData = json.data?.data?.data 
+                        ? json.data.data.data 
+                        : (json.data?.data ? json.data.data : json.data);
+
+        if (rawData) {
+          this.general.data.information = rawData.information || {};
+          
+          // Guardamos el menú
+          this.general.data.primaryMenu = rawData.primary_menu || [];
+          this.general.loading = false;
+          
+          console.log("✅ Menú inyectado con éxito:", this.general.data.primaryMenu);
+
+          // Si el log de arriba sale vacío [], el problema está en el slug de WordPress
+          if (this.general.data.primaryMenu.length === 0) {
+            console.warn("⚠️ El array llegó vacío. Revisa que el slug 'primary-menu' exista en WP.");
+          }
+        }
+      } catch (error) {
+        console.error("❌ Fallo crítico en getGeneralData:", error);
       }
     },
     // ACCIÓN PARA TRAER PÁGINA O POST
     async getPageData(slug: string, type: string = 'page', typeName: string = ''): Promise<void> {
-      try {
-    const url = `${this.api}/pages/${slug}?type=${type}&type-name=${typeName}`
-    console.log("🚀 Pidiendo datos a:", url) // Verifica si la URL es igual a la que funciona
-    
-    const response = await fetch(url)
-    
-    if (response.ok) {
-      const json = await response.json()
-      console.log("📦 JSON recibido desde PHP:", json)
       
-      // IMPORTANTE: Quitamos el .data porque tu PHP devuelve el objeto directo
-      this.pageData = json 
-    } else {
-      console.error("❌ Error en respuesta:", response.status)
-    }
-  } catch (error) {
-    console.error("💥 Error crítico en fetch:", error)
-    this.pageData = null
-  }
+      this.loader.status = true; 
+      this.pageData = null;
+      
+      try {
+        const url = `${this.api}/pages/${slug}?type=${type}&type-name=${typeName}`
+        const response = await fetch(url)
+        
+        if (response.ok) {
+          const json = await response.json()
+                   
+          // NORMALIZACIÓN:
+          // Si el servidor envía doble data (json.data.data), tomamos el nivel profundo.
+          // Si solo envía uno, tomamos json.data.
+          if (json.data && json.data.data) {
+            this.pageData = json.data.data
+          } else {
+            this.pageData = json.data || json
+          }
 
+        } else {
+          console.error("❌ Error en respuesta:", response.status)
+        }
+      } catch (error) {
+        this.pageData = null
+      } finally {
+        // ESTA LÍNEA ES LA QUE QUITA EL CARGANDO
+        this.loader.status = false; 
+        console.log("🏁 Proceso terminado, loader en false");
       }
+
     }
+  }
   
 })

@@ -36,7 +36,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/category/:category_slug',
     name: 'category',
-    component: () => import('@/views/example/CategoryView.vue')
+    component: () => import('@/views/CategoryView.vue')
   },
   /**
    * VISTA DE ARTÍCULO 

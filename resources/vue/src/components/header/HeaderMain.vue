@@ -1,10 +1,26 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useAppStore } from '@/stores/app' // Importamos el store para acceder a los datos globales
 import { useIsAtiveMenuItem } from '@/composable/header'
-import { ref } from 'vue'
-import SidebarNav from '@/components/ui/SidebarNav.vue' // Importamos la nueva pieza
+import SidebarNav from '@/components/ui/SidebarNav.vue'
 
+const store = useAppStore()
 const visible = ref<boolean>(false)
 const isAtiveMenuItem = useIsAtiveMenuItem
+
+
+// Función para convertir URL absoluta de WP en ruta relativa para Vue
+const getRelativeUrl = (url: string) => {
+  if (!url) return '/'
+  // Reemplaza el dominio (sea localhost o el real) por nada
+  // Esto deja solo /category/slug
+  return url.replace(/^https?:\/\/[^/]+/, '')
+  
+}
+
+const navMenu = computed(() => {
+  return store.generalPrimaryMenu || [] 
+})
 </script>
 
 <template>
@@ -25,20 +41,21 @@ const isAtiveMenuItem = useIsAtiveMenuItem
       <nav class="c-nav">
         <div class="c-nav-inner">
           <ul class="c-nav-list ul-reset">
-            <li v-for="item in ['Política', 'Arte', 'Tecnología', 'Negocios', 'Cultura']" :key="item">
+            <li v-for="item in navMenu" :key="item.id">
               <router-link 
-                to="#" 
-                class="c-nav-btn"
-                :class="{ 'is-active': isAtiveMenuItem(item.toLowerCase()) }"
-              >
-                {{ item }}
-              </router-link>
+              :to="getRelativeUrl(item.url)" 
+              class="c-nav-btn"
+              :class="{ 'is-active': isAtiveMenuItem(item.name.toLowerCase()) }"
+            >
+              {{ item.name }}
+            </router-link>
             </li>
           </ul>
-
         </div>
       </nav>
 
-    </div> <SidebarNav v-model="visible" />
+    </div> 
+    
+    <SidebarNav v-model="visible" />
   </header>
 </template>

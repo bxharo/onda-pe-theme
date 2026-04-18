@@ -1,41 +1,27 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { computed } from 'vue'
+import { useAppStore } from '@/stores/app'
+import { usePageManager } from '@/composable/pageManager'
 import HomeHero from '@/components/ui/HomeHero.vue'
 import SidebarMain from '@/components/ui/SidebarMain.vue'
-import HomeCategorySection from '@/components/ui/HomeCategorySection.vue';
-import BaseView from '@/views/core/BaseView.vue';
-import { useAppStore } from '@/stores/app'
+import HomeCategorySection from '@/components/ui/HomeCategorySection.vue'
+import BaseView from '@/views/core/BaseView.vue'
 
 const store = useAppStore()
+
+// 1. GESTIÓN DE CARGA (Sustituye al onMounted y al Watch manual)
+// Esto se encarga de pedir la data al entrar y al volver desde una categoría
+usePageManager({ slug: 'home', type: 'page', typeName: 'page' })
 
 //Recibimos el 'content' que viene desde App.vue
 defineProps<{
   content: any
 }>()
 
-onMounted(async () => {
-  // 1. Pedimos la data del Hero (Soberanía Digital)
-  // Activará el caso 'home' en  __getPostData del Controller
-  await store.getPageData('home', 'page', 'page')
-  
-  // 2. Ahora que la Home tiene sus datos, quitamos el loader
-  store.updateLoader({ status: false, route: '/' })
-  console.log("Revisando el post:", store.pageData?.post)
-})
-
 const heroData = computed(() => {
-
-  // Accedemos a los datos inyectados en el Controller(HERO)
-  const post = store.pageData?.data?.hero;
-  
+  const post = store.pageData?.hero;
   if (!post) {
-    return { 
-      title: '', 
-      tag: '', 
-      description: '', 
-      image: '',
-      url: ''
-    };
+    return { title: '', tag: '', description: '', image: '', url: '' };
   }
   
   return {
@@ -43,31 +29,31 @@ const heroData = computed(() => {
     tag: (post.category_name || 'ACTUALIDAD').toUpperCase(),
     description: post.post_excerpt || '',
     image: post.hero_image || '',
-    url:post.url
+    url: post.url
   }
  
 })
 
 const featuredPosts = computed(() => {
-  // 1. Traemos todo lo que venga en 'destacadas' (ya vienen 9 desde PHP)
-  const posts = store.pageData?.data?.destacadas || [];
+  const posts = store.pageData?.destacadas;
 
+  if (!Array.isArray(posts)) return [];
+  
   return posts.map((post: any, index: number) => ({
-    id: post.id || post.ID, // Soporta ambas por si acaso
-    // Generamos el label 01, 02... 09
+    id: post.id || post.ID,
     indexLabel: (index + 1).toString().padStart(2, '0'),
     category: (post.category_name || 'DESTACADO').toUpperCase(),
-    title: post.title_home,
-    description: post.post_excerpt,
-    image: post.image, // <--- Importante para las grillas con foto
-    url: post.url || post.link
+    title: post.title_home || '',
+    description: post.post_excerpt || '',
+    image: post.image || '',
+    url: post.url || ''
   }));
 });
 
 </script>
 
 <template>
- <BaseView :content="content">
+ <BaseView :content="content || store.pageData" >
       <div class="p-home c-main-layout"> 
         
         <div class="c-content-area">
@@ -133,10 +119,10 @@ const featuredPosts = computed(() => {
 
       <div class="c-category-wrapper">
         <HomeCategorySection 
-          v-for="section in store.pageData?.data?.category_sections" 
-          :key="section.category_name"
-          :title="section.category_name" 
-          :posts="section.articles" 
+         v-for="section in (store.pageData?.data?.category_sections || store.pageData?.category_sections)" 
+        :key="section.category_name"
+        :title="section.category_name" 
+        :posts="section.articles" 
         />
       </div>
 

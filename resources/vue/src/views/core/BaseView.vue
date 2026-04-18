@@ -3,7 +3,7 @@ import type { Content } from '@/types/content';
 import NotFoundView from '@/views/404View.vue'
 
 defineProps<{
-  content: Content
+  content?: Content | null | any
 }>()
 </script>
 
@@ -11,7 +11,7 @@ defineProps<{
   <main class="c-app-main"> 
     <NotFoundView v-if="content?.post?.error" />
 
-    <div v-else-if="content?.post?.title || !content?.post" class="l-container">
+    <div v-else-if="content && (content.post?.title || !content.post)" class="l-container">
       <slot></slot>
     </div>
 

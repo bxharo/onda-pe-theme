@@ -1,5 +1,4 @@
 import { useAppStore } from '@/stores/app'
-import { useRoute } from 'vue-router'
 
 interface PayloadRequest {
   type: string
@@ -18,9 +17,8 @@ const renderErrorPage = (store: any, route: any) => {
 
 export async function useGetContent(payload: PayloadRequest): Promise<any> {
   const store = useAppStore()
-  const route = useRoute()
-  let request: string = `${store.api}/pages/${payload.slug}/?type=${payload.type}`
 
+  let request: string = `${store.api}/pages/${payload.slug}/?type=${payload.type}`
   if (payload.typeName) request += `&type-name=${payload.typeName}`
   if (payload.parent) request += `&parent=${payload.parent}`
 
@@ -31,17 +29,17 @@ export async function useGetContent(payload: PayloadRequest): Promise<any> {
 
     if (status) {
       store.updateLoader({
-        route: route.path,
+        route: '',
         status: false
       })
 
       return data
     } else {
-      renderErrorPage(store, route)
+      renderErrorPage(store, null)
       return { post: { error: true } }
     }
   } else {
-    renderErrorPage(store, route)
+    renderErrorPage(store, null)
     return { post: { error: true } }
   }
 }
